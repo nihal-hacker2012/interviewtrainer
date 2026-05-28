@@ -13,6 +13,7 @@ export default function InterviewSimulator({ isMobileMode }) {
   const [feedback, setFeedback] = useState('');
   const [score, setScore] = useState(0);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '');
+  const [modelString, setModelString] = useState(() => localStorage.getItem('geminiModelString') || '');
   const [isListening, setIsListening] = useState(false);
   
   // Advanced coaching state
@@ -23,7 +24,8 @@ export default function InterviewSimulator({ isMobileMode }) {
   useEffect(() => {
     localStorage.setItem('targetRole', targetRole);
     localStorage.setItem('geminiApiKey', apiKey);
-  }, [targetRole, apiKey]);
+    localStorage.setItem('geminiModelString', modelString);
+  }, [targetRole, apiKey, modelString]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
@@ -49,6 +51,15 @@ export default function InterviewSimulator({ isMobileMode }) {
 
   // Helper to dynamically find a working model for the provided API key
   const getValidModelName = async (key) => {
+    if (modelString.trim() !== '') {
+      return modelString.trim();
+    }
+    
+    // Quick fallback for the specific preview key to avoid CORS block
+    if (key.includes('DLZbvwEHTR5gvZqSm15xjQZcHd9U3p5gE')) {
+      return 'deep-research-max-preview-04-2026'; // Defaulting to one we know the key has
+    }
+
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
       const data = await res.json();
@@ -59,7 +70,7 @@ export default function InterviewSimulator({ isMobileMode }) {
       const preferred = validModels.find(m => m.name.includes('flash')) || validModels.find(m => m.name.includes('pro')) || validModels[0];
       return preferred.name.replace('models/', '');
     } catch (e) {
-      return 'gemini-pro';
+      return 'gemini-pro'; // Usually hits here due to CORS on the /models endpoint
     }
   };
 
@@ -223,10 +234,21 @@ export default function InterviewSimulator({ isMobileMode }) {
             <Key size={16} style={{ marginRight: '8px', color: 'var(--primary)' }} />
             <input 
               type="password" 
-              placeholder="Enter Gemini API Key" 
+              placeholder="Gemini API Key" 
               value={apiKey} 
               onChange={e => setApiKey(e.target.value)}
-              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '150px' }}
+              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '130px' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+            <input 
+              type="text" 
+              placeholder="Model Override (Optional)" 
+              value={modelString} 
+              onChange={e => setModelString(e.target.value)}
+              title="Leave blank for auto-detect. Type model name if you get 404 errors."
+              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '160px', fontSize: '0.85rem' }}
             />
           </div>
 
