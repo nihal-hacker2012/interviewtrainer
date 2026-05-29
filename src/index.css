@@ -362,3 +362,8 @@ button {
     color: black !important;
   }
 }
+
+select option {
+  background-color: var(--surface-solid);
+  color: var(--text-primary);
+}

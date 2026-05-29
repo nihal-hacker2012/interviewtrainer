@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Square, Mic, ShieldAlert, Key, Briefcase, Loader2, RotateCcw } from 'lucide-react';
+import { Play, Square, Mic, ShieldAlert, Key, Briefcase, Loader2, RotateCcw, Building, TrendingUp, Code } from 'lucide-react';
+import Editor from '@monaco-editor/react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import WebcamView from './WebcamView';
 
@@ -16,6 +17,12 @@ export default function InterviewSimulator({ isMobileMode }) {
   const [openAiKey, setOpenAiKey] = useState(() => localStorage.getItem('openAiApiKey') || '');
   const [modelString, setModelString] = useState(() => localStorage.getItem('geminiModelString') || '');
   const [isListening, setIsListening] = useState(false);
+  const [isGrillMeMode, setIsGrillMeMode] = useState(false);
+  const [companyPersona, setCompanyPersona] = useState('Generic');
+  const [interviewType, setInterviewType] = useState('standard');
+  const [code, setCode] = useState('// Write your code here...\n');
+  const [language, setLanguage] = useState('javascript');
+  const [activeTab, setActiveTab] = useState('transcript');
   
   // Advanced coaching state
   const [pastAttempt, setPastAttempt] = useState(null);
@@ -77,8 +84,8 @@ export default function InterviewSimulator({ isMobileMode }) {
   };
 
   const generateQuestions = async () => {
-    if (!apiKey) {
-      alert("Please provide a Gemini API Key to generate dynamic questions.");
+    if (!apiKey && !openAiKey) {
+      alert("Please provide either a Gemini or OpenAI API Key.");
       return;
     }
     
@@ -86,21 +93,70 @@ export default function InterviewSimulator({ isMobileMode }) {
     setFeedback('');
     setPastAttempt(null);
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const modelName = await getValidModelName(apiKey);
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const prompt = `You are an expert recruiter conducting an interview for the role of "${targetRole}". 
-      Generate a realistic interview script with exactly 5 items. 
-      Format exactly like this, one item per line, no extra text or numbering:
-      1. [An introductory conversational question, like "Welcome! Tell me a bit about yourself and why you're interested in this role."]
-      2. [A role-specific behavioral question]
-      3. [A role-specific technical or situational question]
-      4. [A challenging role-specific scenario question]
-      5. [A concluding question, e.g. "We're wrapping up. Do you have any questions for me?"]
-      Do not include numbering in the output, just the raw text of the question on each line.`;
+      let personaInstruction = "";
+      if (companyPersona === "Amazon") personaInstruction = "You are an Amazon interviewer. Focus heavily on the 14 Leadership Principles and STAR method. ";
+      else if (companyPersona === "Google") personaInstruction = "You are a Google interviewer. Focus heavily on Googleyness, scalable systems, and analytical thinking. ";
+      else if (companyPersona === "Meta") personaInstruction = "You are a Meta interviewer. Focus heavily on moving fast, impact, and engineering efficiency. ";
+      else if (companyPersona === "Startup") personaInstruction = "You are a demanding founder of an early-stage startup. Focus heavily on hustle, wearing multiple hats, and long hours. ";
 
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      let basePrompt = "";
+      let prompt = "";
+      
+      if (interviewType === "salary") {
+        basePrompt = isGrillMeMode 
+          ? `You are an aggressive, ruthless HR recruiter negotiating a lowball salary for the role of "${targetRole}". ${personaInstruction}`
+          : `You are a professional HR recruiter negotiating salary for the role of "${targetRole}". ${personaInstruction}`;
+          
+        prompt = `${basePrompt} 
+        Generate a realistic salary negotiation script with exactly 5 items for the candidate.
+        Format exactly like this, one item per line, no extra text or numbering:
+        1. [The initial lowball salary offer to the candidate]
+        2. [Pushback and hesitation if the candidate counters]
+        3. [Offering some equity/bonus instead of base salary]
+        4. [Final firm offer - take it or leave it]
+        5. [Concluding the negotiation]
+        Do not include numbering in the output, just the raw text of the question on each line.`;
+      } else {
+        basePrompt = isGrillMeMode 
+          ? `You are an aggressive, impatient, highly technical Manager conducting a brutal stress interview for the role of "${targetRole}". ${personaInstruction}`
+          : `You are an expert recruiter conducting a friendly, professional interview for the role of "${targetRole}". ${personaInstruction}`;
+
+        prompt = `${basePrompt} 
+        Generate a realistic interview script with exactly 5 items. 
+        Format exactly like this, one item per line, no extra text or numbering:
+        1. [An introductory conversational question, like "Welcome! Tell me a bit about yourself and why you're interested in this role."]
+        2. [A role-specific behavioral question]
+        3. [A role-specific technical or situational question]
+        4. [A challenging role-specific scenario question]
+        5. [A concluding question, e.g. "We're wrapping up. Do you have any questions for me?"]
+        Do not include numbering in the output, just the raw text of the question on each line.`;
+      }
+
+      let text = "";
+
+      if (openAiKey) {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${openAiKey}`
+          },
+          body: JSON.stringify({
+            model: modelString || "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7
+          })
+        });
+        if (!res.ok) throw new Error("OpenAI Error: " + res.statusText);
+        const data = await res.json();
+        text = data.choices[0].message.content;
+      } else {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const modelName = await getValidModelName(apiKey);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        text = result.response.text();
+      }
       
       const parsedQuestions = text.split('\n')
         .map(q => q.replace(/^\d+[\.\)]\s*/, '').trim())
@@ -135,27 +191,65 @@ export default function InterviewSimulator({ isMobileMode }) {
   };
 
   const getAIFeedback = async (answer) => {
-    if (!apiKey) return;
+    if (!apiKey && !openAiKey) return;
     
     try {
       setFeedback("AI is analyzing your response...");
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const modelName = await getValidModelName(apiKey);
-      const model = genAI.getGenerativeModel({ model: modelName });
       
-      let prompt = `You are an expert interviewer for the role of "${targetRole}". 
-        The question was: "${questions[questionIndex]}". 
-        The candidate answered: "${answer}". 
+      let personaInstruction = "";
+      if (companyPersona === "Amazon") personaInstruction = "You are an Amazon interviewer. Focus heavily on the 14 Leadership Principles and STAR method. ";
+      else if (companyPersona === "Google") personaInstruction = "You are a Google interviewer. Focus heavily on Googleyness, scalable systems, and analytical thinking. ";
+      else if (companyPersona === "Meta") personaInstruction = "You are a Meta interviewer. Focus heavily on moving fast, impact, and engineering efficiency. ";
+      else if (companyPersona === "Startup") personaInstruction = "You are a demanding founder of an early-stage startup. Focus heavily on hustle, wearing multiple hats, and long hours. ";
+
+      let basePrompt = "";
+      if (interviewType === "salary") {
+         basePrompt = isGrillMeMode
+           ? `You are a harsh HR recruiter negotiating a lowball salary for the role of "${targetRole}". The current negotiation phase: "${questions[questionIndex]}". The candidate said: "${answer}". Deduct points aggressively for weak leverage, lack of confidence, or giving in too early. Be ruthless in your feedback. ${personaInstruction}`
+           : `You are an HR recruiter negotiating salary for the role of "${targetRole}". The current negotiation phase: "${questions[questionIndex]}". The candidate said: "${answer}". Evaluate their negotiation tactics, leverage, and confidence. ${personaInstruction}`;
+      } else {
+         basePrompt = isGrillMeMode
+           ? `You are a harsh, highly-critical stress interviewer for the role of "${targetRole}". The question was: "${questions[questionIndex]}". The candidate answered: "${answer}". Deduct points aggressively for any hesitation, lack of deep technical detail, or rambling. Be blunt and ruthless in your feedback. ${personaInstruction}`
+           : `You are an expert interviewer for the role of "${targetRole}". The question was: "${questions[questionIndex]}". The candidate answered: "${answer}". ${personaInstruction}`;
+      }
+        
+      let prompt = `${basePrompt} 
         Provide a very brief 2 sentence feedback, and a score out of 100. Format your response exactly like this:
         Score: [number]
         Feedback: [your feedback]`;
+
+      if (activeTab === 'editor' && code.trim().length > 10) {
+        prompt += `\n\nAdditionally, the candidate wrote the following ${language} code:\n\`\`\`${language}\n${code}\n\`\`\`\nPlease evaluate their code logic, point out bugs, and factor this into your score.`;
+      }
 
       if (pastAttempt) {
         prompt += `\n\nNote: The candidate attempted this previously and scored ${pastAttempt.score}. Their previous answer was "${pastAttempt.answer}". In your feedback, explicitly compare this new attempt to their old attempt and state if they improved and why.`;
       }
 
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      let text = "";
+      if (openAiKey) {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${openAiKey}`
+          },
+          body: JSON.stringify({
+            model: modelString || "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7
+          })
+        });
+        if (!res.ok) throw new Error("OpenAI Error: " + res.statusText);
+        const data = await res.json();
+        text = data.choices[0].message.content;
+      } else {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const modelName = await getValidModelName(apiKey);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        text = result.response.text();
+      }
       
       const scoreMatch = text.match(/Score:\s*(\d+)/i);
       const feedbackMatch = text.match(/Feedback:\s*(.*)/is);
@@ -193,10 +287,18 @@ export default function InterviewSimulator({ isMobileMode }) {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
-    if (transcript.trim().length > 5) {
+    if (transcript.trim().length > 5 || code.trim().length > 25) {
       getAIFeedback(transcript);
     } else {
       setFeedback("Answer was too short to evaluate. Try speaking clearly into the microphone.");
+    }
+  };
+
+  const handleEvaluateCode = () => {
+    if (code.trim().length > 10) {
+      getAIFeedback(transcript || "The candidate submitted code without a verbal explanation.");
+    } else {
+      setFeedback("Code is too short to evaluate.");
     }
   };
 
@@ -280,6 +382,49 @@ export default function InterviewSimulator({ isMobileMode }) {
             />
           </div>
 
+          <div style={{ display: 'flex', flex: '1 1 200px', alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+            <Building size={16} style={{ marginRight: '8px', color: 'var(--primary)', flexShrink: 0 }} />
+            <select 
+              value={companyPersona} 
+              onChange={e => setCompanyPersona(e.target.value)}
+              disabled={isActive || isLoading}
+              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '100%', fontSize: '0.85rem' }}
+            >
+              <option value="Generic">Generic Company</option>
+              <option value="Amazon">Amazon (Leadership)</option>
+              <option value="Google">Google (Scale/Logic)</option>
+              <option value="Meta">Meta (Move Fast)</option>
+              <option value="Startup">Strict Startup</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', flex: '1 1 200px', alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+            <TrendingUp size={16} style={{ marginRight: '8px', color: 'var(--primary)', flexShrink: 0 }} />
+            <select 
+              value={interviewType} 
+              onChange={e => setInterviewType(e.target.value)}
+              disabled={isActive || isLoading}
+              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '100%', fontSize: '0.85rem' }}
+            >
+              <option value="standard">Standard Interview</option>
+              <option value="salary">Salary Negotiation</option>
+            </select>
+          </div>
+
+          <button 
+            className="btn-secondary"
+            onClick={() => setIsGrillMeMode(!isGrillMeMode)}
+            disabled={isActive || isLoading}
+            style={{ 
+              borderColor: isGrillMeMode ? 'var(--danger)' : 'var(--primary)',
+              color: isGrillMeMode ? 'var(--danger)' : 'var(--primary)',
+              whiteSpace: 'nowrap'
+            }}
+            title={isGrillMeMode ? "Stress Mode Active" : "Friendly Mode Active"}
+          >
+            {isGrillMeMode ? '🔥 Grill Me Mode' : '😊 Friendly Mode'}
+          </button>
+
           <button 
             className="btn-primary"
             onClick={generateQuestions}
@@ -320,21 +465,64 @@ export default function InterviewSimulator({ isMobileMode }) {
                 <h3 style={{ fontSize: '1.2rem', lineHeight: '1.4' }}>{questions[questionIndex]}</h3>
               </div>
 
-              <div style={{ background: 'var(--surface-solid)', padding: '16px', borderRadius: '12px', minHeight: '100px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)' }}>
-                  <Mic size={16} /> Live Transcript
-                </h4>
-                <div style={{ flex: 1, marginBottom: '16px', color: isListening ? 'var(--text-primary)' : 'var(--text-secondary)', fontStyle: transcript ? 'normal' : 'italic', maxHeight: '150px', overflowY: 'auto' }}>
-                  {transcript || "Click 'Start Speaking' to answer..."}
-                </div>
-                
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  {!isListening ? (
-                     <button className="btn-primary" style={{ flex: 1 }} onClick={handleStartListening}>Start Speaking</button>
-                  ) : (
-                     <button className="btn-secondary" style={{ flex: 1, borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={handleStopListening}>Stop & Evaluate</button>
+              <div style={{ background: 'var(--surface-solid)', padding: '16px', borderRadius: '12px', minHeight: '300px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', gap: '16px', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+                  <button 
+                    onClick={() => setActiveTab('transcript')}
+                    style={{ background: 'none', border: 'none', color: activeTab === 'transcript' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: activeTab === 'transcript' ? 'bold' : 'normal', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Mic size={16} /> Live Transcript
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('editor')}
+                    style={{ background: 'none', border: 'none', color: activeTab === 'editor' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: activeTab === 'editor' ? 'bold' : 'normal', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Code size={16} /> Code Editor
+                  </button>
+                  {activeTab === 'editor' && (
+                    <select 
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      style={{ marginLeft: 'auto', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '2px 8px', fontSize: '0.8rem' }}
+                    >
+                      <option value="javascript">JavaScript</option>
+                      <option value="python">Python</option>
+                      <option value="java">Java</option>
+                      <option value="cpp">C++</option>
+                    </select>
                   )}
                 </div>
+
+                {activeTab === 'transcript' ? (
+                  <>
+                    <div style={{ flex: 1, marginBottom: '16px', color: isListening ? 'var(--text-primary)' : 'var(--text-secondary)', fontStyle: transcript ? 'normal' : 'italic', maxHeight: '150px', overflowY: 'auto' }}>
+                      {transcript || "Click 'Start Speaking' to answer..."}
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      {!isListening ? (
+                         <button className="btn-primary" style={{ flex: 1 }} onClick={handleStartListening}>Start Speaking</button>
+                      ) : (
+                         <button className="btn-secondary" style={{ flex: 1, borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={handleStopListening}>Stop & Evaluate</button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ flex: 1, marginBottom: '16px', minHeight: '200px', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
+                      <Editor
+                        height="100%"
+                        language={language}
+                        theme="vs-dark"
+                        value={code}
+                        onChange={(value) => setCode(value || '')}
+                        options={{ minimap: { enabled: false }, fontSize: 14 }}
+                      />
+                    </div>
+                    <button className="btn-primary" style={{ width: '100%' }} onClick={handleEvaluateCode}>
+                      Submit Code for Evaluation
+                    </button>
+                  </>
+                )}
               </div>
 
               {feedback && (
