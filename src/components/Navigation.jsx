@@ -14,7 +14,6 @@ export default function Navigation({ activeTab, setActiveTab }) {
         return (
           <button
             key={tab.id}
-            className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
             style={{
               display: 'flex',

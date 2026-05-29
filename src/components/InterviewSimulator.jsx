@@ -269,16 +269,26 @@ export default function InterviewSimulator({ isMobileMode }) {
           </div>
 
           <div style={{ display: 'flex', flex: '1 1 200px', alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-            <Briefcase size={16} style={{ marginRight: '8px', color: 'var(--primary)' }} />
+            <Briefcase size={16} style={{ marginRight: '8px', color: 'var(--primary)', flexShrink: 0 }} />
             <input 
               type="text" 
               placeholder="Target Role (e.g. Banker)" 
               value={targetRole} 
               onChange={e => setTargetRole(e.target.value)}
               disabled={isActive || isLoading}
-              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '150px' }}
+              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '100%' }}
             />
           </div>
+
+          <button 
+            className="btn-primary"
+            onClick={generateQuestions}
+            disabled={(!apiKey && !openAiKey) || !targetRole || isActive || isLoading}
+            style={{ marginLeft: 'auto', flex: '1 1 auto', whiteSpace: 'nowrap' }}
+          >
+            {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} />}
+            {isLoading ? 'Connecting...' : 'Launch Simulation'}
+          </button>
         </div>
       </div>
 
@@ -288,12 +298,7 @@ export default function InterviewSimulator({ isMobileMode }) {
           <WebcamView isActive={isActive} />
           
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-            {!isActive ? (
-              <button className="btn-primary" onClick={generateQuestions} disabled={isLoading} style={{ width: '100%', maxWidth: '300px', fontSize: '1.2rem', padding: '16px' }}>
-                {isLoading ? <Loader2 className="animate-spin" size={24} /> : <Play size={24} />}
-                {isLoading ? 'Generating Interview...' : 'Launch Simulation'}
-              </button>
-            ) : (
+            {isActive && (
               <button className="btn-secondary" onClick={() => { setIsActive(false); if(isListening) handleStopListening(); }} style={{ width: '100%', maxWidth: '300px', color: 'var(--danger)', borderColor: 'var(--danger)' }}>
                 <Square size={20} style={{ marginRight: '8px' }}/> End Simulation
               </button>
