@@ -308,35 +308,57 @@ button {
   body, html {
     margin: 0 !important;
     padding: 0 !important;
-    width: 100%;
-    height: 100%;
     background: white !important;
   }
-  body * {
-    visibility: hidden;
+  
+  /* Hide all app UI components */
+  .header,
+  .nav-tabs,
+  nav.glass-panel,
+  .print-hide,
+  .grid-2 > .glass-panel,
+  #resume-preview-controls,
+  input[type="file"] {
+    display: none !important;
   }
-  #resume-preview, #resume-preview * {
-    visibility: visible;
-  }
-  #resume-preview {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100% !important;
-    min-height: 100vh !important;
-    margin: 0 !important;
-    padding: 40px !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-  }
-  .app-container, .main-content, .grid-2 {
+
+  /* Reset layout constraints to allow natural document flow across multiple pages */
+  .app-container, 
+  .app-container.mobile-mode, 
+  .main-content, 
+  .grid-2,
+  body > #root {
     display: block !important;
-    background: white !important;
-    border: none !important;
-    box-shadow: none !important;
+    position: static !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
     height: auto !important;
+    min-height: 0 !important;
+    max-width: none !important;
     overflow: visible !important;
+    transform: none !important;
+    background: white !important;
+  }
+
+  /* Make sure the right column (Preview) flows normally */
+  .grid-2 > div:last-child {
+    display: block !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  /* Perfect rendering for the resume itself */
+  #resume-preview {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 40px !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    color: black !important;
   }
 }

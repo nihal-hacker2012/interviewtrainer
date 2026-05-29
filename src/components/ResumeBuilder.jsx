@@ -266,7 +266,7 @@ export default function ResumeBuilder({ isMobileMode }) {
           overflowY: 'auto'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', background: 'var(--surface-color)', padding: '12px', borderRadius: '12px', backdropFilter: 'blur(10px)' }}>
+        <div id="resume-preview-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', background: 'var(--surface-color)', padding: '12px', borderRadius: '12px', backdropFilter: 'blur(10px)' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Eye size={20} color="var(--primary)" /> Live Preview
           </h3>
@@ -284,7 +284,7 @@ export default function ResumeBuilder({ isMobileMode }) {
 
         {isMobileMode && (
           <button 
-            className="btn-secondary" 
+            className="btn-secondary print-hide" 
             onClick={() => setShowPreview(false)}
             style={{ width: '100%', marginTop: '16px' }}
           >
@@ -296,7 +296,7 @@ export default function ResumeBuilder({ isMobileMode }) {
       {/* Mobile Floating Action Button for Preview */}
       {isMobileMode && !showPreview && (
         <button 
-          className="btn-primary"
+          className="btn-primary print-hide"
           onClick={() => setShowPreview(true)}
           style={{ position: 'absolute', bottom: '24px', right: '24px', borderRadius: '50%', width: '56px', height: '56px', padding: 0, boxShadow: 'var(--shadow-lg)', zIndex: 100 }}
           title="Show Preview"
