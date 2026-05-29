@@ -13,6 +13,7 @@ export default function InterviewSimulator({ isMobileMode }) {
   const [feedback, setFeedback] = useState('');
   const [score, setScore] = useState(0);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '');
+  const [openAiKey, setOpenAiKey] = useState(() => localStorage.getItem('openAiApiKey') || '');
   const [modelString, setModelString] = useState(() => localStorage.getItem('geminiModelString') || '');
   const [isListening, setIsListening] = useState(false);
   
@@ -24,8 +25,9 @@ export default function InterviewSimulator({ isMobileMode }) {
   useEffect(() => {
     localStorage.setItem('targetRole', targetRole);
     localStorage.setItem('geminiApiKey', apiKey);
+    localStorage.setItem('openAiApiKey', openAiKey);
     localStorage.setItem('geminiModelString', modelString);
-  }, [targetRole, apiKey, modelString]);
+  }, [targetRole, apiKey, openAiKey, modelString]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
@@ -230,29 +232,43 @@ export default function InterviewSimulator({ isMobileMode }) {
         </div>
         
         <div style={{ display: 'flex', gap: '12px', background: 'var(--surface-solid)', padding: '8px', borderRadius: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-            <Key size={16} style={{ marginRight: '8px', color: 'var(--primary)' }} />
-            <input 
-              type="password" 
-              placeholder="Gemini API Key" 
-              value={apiKey} 
-              onChange={e => setApiKey(e.target.value)}
-              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '130px' }}
-            />
+          
+          <div style={{ display: 'flex', flex: '1 1 300px', gap: '8px' }}>
+            <div style={{ display: 'flex', flex: 1, alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+              <Key size={16} style={{ marginRight: '8px', color: 'var(--primary)', flexShrink: 0 }} />
+              <input 
+                type="password" 
+                placeholder="Gemini API Key" 
+                value={apiKey} 
+                onChange={e => setApiKey(e.target.value)}
+                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '100%', fontSize: '0.85rem' }}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', flex: 1, alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+              <Key size={16} style={{ marginRight: '8px', color: '#10a37f', flexShrink: 0 }} />
+              <input 
+                type="password" 
+                placeholder="OpenAI API Key" 
+                value={openAiKey} 
+                onChange={e => setOpenAiKey(e.target.value)}
+                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '100%', fontSize: '0.85rem' }}
+              />
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', flex: '1 1 200px', alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
             <input 
               type="text" 
               placeholder="Model Override (Optional)" 
               value={modelString} 
               onChange={e => setModelString(e.target.value)}
               title="Leave blank for auto-detect. Type model name if you get 404 errors."
-              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '160px', fontSize: '0.85rem' }}
+              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '100%', fontSize: '0.85rem' }}
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', flex: '1 1 200px', alignItems: 'center', background: 'var(--bg-color)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
             <Briefcase size={16} style={{ marginRight: '8px', color: 'var(--primary)' }} />
             <input 
               type="text" 

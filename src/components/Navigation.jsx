@@ -8,7 +8,7 @@ export default function Navigation({ activeTab, setActiveTab }) {
   ];
 
   return (
-    <nav className="glass-panel" style={{ padding: '8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', margin: '24px auto', borderRadius: '12px' }}>
+    <nav className="glass-panel" style={{ padding: '8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', margin: '24px auto', borderRadius: '12px', width: 'fit-content', maxWidth: '100%' }}>
       {tabs.map((tab) => {
         const Icon = tab.icon;
         return (
@@ -28,7 +28,6 @@ export default function Navigation({ activeTab, setActiveTab }) {
               fontWeight: '600',
               fontSize: '0.95rem',
               whiteSpace: 'nowrap',
-              flex: '1 1 auto',
               transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
               background: activeTab === tab.id ? 'linear-gradient(135deg, var(--primary), #a200ff)' : 'transparent',
               color: activeTab === tab.id ? '#fff' : 'var(--text-secondary)',
