@@ -16,7 +16,21 @@ export default function Navigation({ activeTab, setActiveTab }) {
             key={tab.id}
             className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '0.95rem',
+              transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+              background: activeTab === tab.id ? 'linear-gradient(135deg, var(--primary), #a200ff)' : 'transparent',
+              color: activeTab === tab.id ? '#fff' : 'var(--text-secondary)',
+              boxShadow: activeTab === tab.id ? '0 4px 15px rgba(0, 240, 255, 0.3)' : 'none',
+            }}
           >
             <Icon size={18} />
             <span className="tab-label">{tab.label}</span>
