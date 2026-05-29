@@ -32,6 +32,10 @@
   padding: 0;
 }
 
+svg {
+  flex-shrink: 0;
+}
+
 body {
   background: radial-gradient(circle at 15% 0%, rgba(0, 240, 255, 0.06), transparent 40%),
               radial-gradient(circle at 85% 100%, rgba(162, 0, 255, 0.06), transparent 40%),
